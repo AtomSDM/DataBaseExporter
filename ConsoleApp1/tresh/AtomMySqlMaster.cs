@@ -9,8 +9,7 @@ namespace ConsoleApp1.models
 {
     public class AtomMySqlMaster
     {
-        private MySqlConnection _connector;
-        private DbDataReader _reader;
+        private MySqlConnection _connector; private DbDataReader _reader;
         public string CurentTable { get; private set; } = null;
         public List<string> CurentTableSchem  = new List<string>();
         
@@ -51,6 +50,7 @@ namespace ConsoleApp1.models
             try
             {
                 MySqlCommand cmd = new MySqlCommand($"SELECT * FROM `{tableName}` ", _connector);
+               
                 
                 _reader = cmd.ExecuteReader(); 
                 
@@ -69,21 +69,38 @@ namespace ConsoleApp1.models
             } 
             
         }
+        
+        public void SetTable(string tableName, List<string> rows)
+                {
+                    try
+                    {
+                        MySqlCommand cmd = new MySqlCommand($"SELECT {ListToString(rows)} FROM `{tableName}` ", _connector);
+                        
+                        _reader = cmd.ExecuteReader(); 
+                        
+                        for (int i = 0; i < _reader.FieldCount; i++)
+                        {
+                            CurentTableSchem.Add(_reader.GetName(i));;
+                        }
+                        
+                        CurentTable = tableName; 
+                        
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        throw; 
+                    } 
+                    
+                }
 
         public List<string> GetExportList(int lim)
         {
             List<string> queryList;
             queryList = new();
 
-            string columnListString = "";
+            string columnListString = ListToString(CurentTableSchem);
 
-            foreach (string element in CurentTableSchem)
-            {
-                columnListString += "`"+element + "`, ";    
-            }
-
-            columnListString = columnListString.Substring(0, columnListString.Length - 2);
-            
             string templateExportString = $"INSERT INTO `product` ({columnListString}) VALUES ";
 
             string exportString = templateExportString;
@@ -143,6 +160,38 @@ namespace ConsoleApp1.models
 
             return queryList;
         }
-       
+
+        private string ListToString(List<string> list)
+        {
+            string str = "";
+            
+            foreach (string element in list)
+            {
+               str += "`"+element + "`, ";    
+            }
+
+            str = str.Substring(0, str.Length - 2);
+
+            return str;
+        }
+
+        private void run()
+        {
+            AtomMySqlMaster OldDb =
+                new AtomMySqlMaster
+                (
+                   new MySqlConnection("server=localhost;database=data2;user=root;password=root") 
+                );
+            
+            OldDb.SetTable("product");
+
+            //List<string> prod = OldDb.GetExportList(100, );
+
+            OldDb.SetTable("product_description");
+            
+            List<string> prodDesc = OldDb.GetExportList(100);
+        }
     }
+    
+    
 }

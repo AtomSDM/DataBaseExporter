@@ -1,6 +1,9 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using ConsoleApp1.models;
+using System.Data.Common;
+using ConsoleApp1.DataMaster;
+using ConsoleApp1.DataMaster.MySQL;
 using MySql.Data.MySqlClient;
 
 
@@ -10,21 +13,27 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            AtomMySqlMaster OldDb =
-                new AtomMySqlMaster
-                (
-                    new MySqlConnection("server=localhost;database=data2;user=root;password=root")
-                );
+            //выборку в базе данных с таблицы product
+            //создаем массив типа productList['model']
             
-            OldDb.SetTable("product");
+            //выборку в базе данных с таблицы product_description by product_id
+            //присоединяем все к списку productList['description'] = product_descriptionList['name']
+            //
 
-            List<string> prod = OldDb.GetExportList(100);
+            IDataMasterProvider master = new MySQLDataMasterProvider("server=localhost;database=politerm;user=root;password=root");
 
-            OldDb.SetTable("product_description");
+            var table = master.Select("product");
+
+            Console.WriteLine(table[0]["image"]);
+
+            Dictionary<string, string> asoc = new Dictionary<string, string>();
             
-            List<string> prodDesc = OldDb.GetExportList(100);
+            asoc.Add("article", "model");
+            asoc.Add("image", "image");
+            asoc.Add("cena", "price");
+
+            master.ImportFromList("test",table,asoc);
 
         }
-        
     }
 }   
