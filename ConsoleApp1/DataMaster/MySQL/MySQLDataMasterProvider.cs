@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Threading.Channels;
-using ConsoleApp1.DataMaster;
+using System.Globalization;
+using System.Linq;
 using ConsoleApp1.Extensions;
 using MySql.Data.MySqlClient;
 
@@ -20,86 +20,101 @@ namespace ConsoleApp1.DataMaster.MySQL
             _connection.Open();
         }
         
-        public List<Dictionary<string, string>> Select(string tableName)
+        public List<Dictionary<string, dynamic>> Select(string tableName)
         {
             DbDataReader reader;
-            
+
             try
             {
-                
-                reader = new MySqlCommand($"SELECT * FROM `{tableName}` LIMIT 10", _connection).ExecuteReader(); 
-                
+                reader = new MySqlCommand($"SELECT * FROM `{tableName}` LIMIT 10", _connection).ExecuteReader();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Console.WriteLine(e);
                 throw;
             }
 
             return reader.ToList();
         }
 
-        public List<Dictionary<string, string>> Select(string tableName, string[] rowToSelect)
+        public List<Dictionary<string, dynamic>> Select(string tableName, string rowToSelect)
         {
-            throw new System.NotImplementedException();
+            DbDataReader reader;
+
+            try
+            {
+                reader = new MySqlCommand($"SELECT {rowToSelect} FROM `{tableName}` LIMIT 10", _connection).ExecuteReader();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+            return reader.ToList();
         }
 
         public int ImportFromList(string tableName, List<Dictionary<string, string>> dataList)
         {
             throw new NotImplementedException();
         }
-        
-        public int ImportFromList(string tableName, List<Dictionary<string, string>> dataList, Dictionary<string,string> listAsotiation)
+
+        ///<summary>
+        ///Этот метод импортирует данные в уже готовую таблицу, с настройкой асоциаций между столбцами
+        ///</summary>
+        ///<returns>
+        ///Код результата запроса. 0 - без ошибок, 1+ с ошибкой.
+        ///</returns>
+        ///<param name="tableName">Название табллицы в которую производится импорт</param>
+        ///<param name="dataList">Данные которые нужно Импортировать в таблицу</param>
+        ///<param name="listAsotiation">Словарь асоциаций между таблицами</param>
+        public int ImportFromList(string tableName, List<Dictionary<string, dynamic>> dataList,
+            Dictionary<string, string> listAsotiation)
         {
+            //ToDo: Это нада будет как-то оптимизировать
+
             try
             {
-                if(_connection.State == ConnectionState.Open) _connection.Close();
-                
+                if (_connection.State == ConnectionState.Open) _connection.Close();
+
                 _connection.Open();
-                
-                string ImpStr = "";
-                string tableStruct = "";
 
-                foreach (var element in listAsotiation)
+                //Построение строки стобцов
+                Console.WriteLine(string.Join(",", listAsotiation.Keys));
+
+                List<string> dataImportList = new List<string>();
+
+                foreach (Dictionary<string, dynamic> rows in dataList)
                 {
-                    tableStruct += element.Key + ", ";
+                    dataImportList.Add(string.Format(@"({0})", string.Join(",", rows.MutateToSQLImportContains(listAsotiation))));
                 }
 
-                string dataImportValues = "";
-
-                foreach (var element in dataList)
-                {
-                    string dis = ""; //data import string
-                    
-                    foreach (var e in listAsotiation)
-                    {
-                        dis += "\""+element[e.Value] + "\", ";
-                    }
-
-                    dataImportValues += $"({dis.Substring(0, dis.Length - 2)}), ";
-                }
-
-                string cmdt = string.Format
+                //Команда для запроса в базу данных
+                string cmd = string.Format
                 (
                     "INSERT INTO `{0}` ({1}) VALUES {2};",
-                    tableName,
-                    tableStruct.Substring(0, tableStruct.Length - 2),
-                    dataImportValues.Substring(0, dataImportValues.Length - 2)
+                    tableName, //название таблицы в которую експортируются данные
+                    string.Join(",", listAsotiation.Keys), //Столбцы которые будут заполняться
+                    string.Join(",", dataImportList) //Данные которые будут импортироваться
                 );
+
+                Console.WriteLine(cmd);
                 
-                new MySqlCommand(
-                    cmdt,
-                    _connection).ExecuteReader();
+                //new MySqlCommand(cmd, _connection).ExecuteNonQuery(); //Выполнение команды
+
                 _connection.Close();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
-                
+
                 return 1;
             }
 
             return 0;
+
         }
+
+
     }
 }
