@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Globalization;
+using ConsoleApp1.DataMaster;
 
 namespace ConsoleApp1.Extensions
 {
@@ -9,11 +10,6 @@ namespace ConsoleApp1.Extensions
     {
         public static List<Dictionary<string,dynamic>> ToList(this DbDataReader reader)
         {
-            //ToDo: Реализовать зависимость от типов из таблицы базы данных
-            // как вариант типизацию можно реализовать через динамический тип языка C# но это как вариант. Это позволит разделить на типы сейчас так как их использует .NET,
-            // а пото в реализации каждой из вариантом експорта отображение типов настраивать локально.
-            //
-            
             var DataTable = new List<Dictionary<string,dynamic>>();
 
             var tableStruct = new List<string>();
@@ -42,6 +38,8 @@ namespace ConsoleApp1.Extensions
             return DataTable;
         }
 
+        //ToDo: public static Table ToTable(this DbDataReader reader);
+        
         public static IEnumerable<string> MutateToSQLImportContains(this Dictionary<string,dynamic> dict, Dictionary<string,string> asoc)
         {
             foreach (var obj in asoc.Values)
@@ -67,5 +65,6 @@ namespace ConsoleApp1.Extensions
                 
             }
         }
+        
     }
 }

@@ -1,15 +1,7 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Globalization;
-using System.Linq;
 using ConsoleApp1.DataMaster;
 using ConsoleApp1.DataMaster.MySQL;
-using Google.Protobuf.WellKnownTypes;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using MySql.Data.MySqlClient;
-using Table = Microsoft.EntityFrameworkCore.Metadata.Internal.Table;
 
 
 namespace ConsoleApp1
@@ -26,10 +18,34 @@ namespace ConsoleApp1
             //
 
             IDataMasterProvider master =
-                new MySQLDataMasterProvider("server=localhost;database=politerm;user=root;password=root");
+                new MySqlDataMasterProvider("server=localhost;database=politerm;user=root;password=root");
 
-            var table = master.Select("product");
+            Table table = master.Select("product");
 
+            //table.GetImportString();
+            //table.GetImportStringByLimit();
+            
+            Console.WriteLine(table.Structure[0].Name);
+
+            //Console.WriteLine(table.DataRows[0].ToString());
+            //Console.WriteLine("("+table.DataRows[0].ToString(", ", a => MySqlDataMasterProvider.MysqlTypeFormat(a)) + ") ");
+
+            IDataMasterProvider ms =
+                new MySqlDataMasterProvider("server=localhost;database=data2;user=root;password=root");
+            
+            ms.IncludeToTable("product", table);
+            
+            
+            
+            //table.stuc[0]; // return "id"
+            //table.data[0]; // return data_row
+            //table.data[0]["product_id"]; // return "00012"
+
+            //table.GetImportString(); //return "INSERT * INTO TUDA"
+            //table.GetImportStringByAsotiation();
+            
+            
+            
             Dictionary<string, string> asoc = new Dictionary<string, string>();
             
             asoc.Add("id","product_id");
@@ -40,7 +56,7 @@ namespace ConsoleApp1
             asoc.Add("hz", "shipping");
             asoc.Add("denyochek", "date_available");
             
-            master.ImportFromList("test",table,asoc);
+            //master.ImportFromList("test",table,asoc);
             
          }
     }

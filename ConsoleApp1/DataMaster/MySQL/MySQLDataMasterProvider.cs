@@ -9,112 +9,101 @@ using MySql.Data.MySqlClient;
 
 namespace ConsoleApp1.DataMaster.MySQL
 {
-    public class MySQLDataMasterProvider : IDataMasterProvider
+    public class MySqlDataMasterProvider : IDataMasterProvider
     {
         private string _connectionString;
         private MySqlConnection _connection;
-        public MySQLDataMasterProvider(string connectionString)
+        private DbDataReader _reader;
+        
+        public MySqlDataMasterProvider(string connectionString)
         {
             _connection = new MySqlConnection(connectionString);
             _connectionString = connectionString;
             _connection.Open();
         }
         
-        public List<Dictionary<string, dynamic>> Select(string tableName)
+        public Table Select(string tableName)
         {
-            DbDataReader reader;
-
-            try
+            if(_connection.State == ConnectionState.Closed) _connection.Open();
+            
+            _reader = new MySqlCommand($"SELECT * FROM `{tableName}` LIMIT 10", _connection).ExecuteReader();
+            
+            return new Table(this);
+        }
+        public Table Select(string tableName, string[] rowToSelect)
+        {
+            if(_connection.State == ConnectionState.Closed) _connection.Open();
+            
+            _reader = new MySqlCommand($"SELECT  FROM `{tableName}` LIMIT 10", _connection).ExecuteReader();
+            
+            return new Table(this);
+        }
+        
+        public IEnumerable<StructElement> GetStruct()
+        {
+            for (var i = 0; i < _reader.FieldCount; i++)
             {
-                reader = new MySqlCommand($"SELECT * FROM `{tableName}` LIMIT 10", _connection).ExecuteReader();
+                yield return (new StructElement(i, _reader.GetName(i), _reader.GetFieldType(i)));
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-
-            return reader.ToList();
         }
 
-        public List<Dictionary<string, dynamic>> Select(string tableName, string rowToSelect)
+        public IEnumerable<DataColumn> GetDataColumn(TableStruct struc)
         {
-            DbDataReader reader;
-
-            try
+            while (_reader.Read())
             {
-                reader = new MySqlCommand($"SELECT {rowToSelect} FROM `{tableName}` LIMIT 10", _connection).ExecuteReader();
+                yield return new DataColumn(struc, GetRow(_reader).ToList());
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-
-            return reader.ToList();
         }
 
-        public int ImportFromList(string tableName, List<Dictionary<string, string>> dataList)
+        public string ExportToString(string tableName, Table table)
         {
-            throw new NotImplementedException();
+            var field = string.Join(", ", table.Structure._elements.Select(a => a.Name));
+
+            List<string> data = new List<string>();
+
+            //ToDo: owerwrite this
+            for (int i = 0; i < table.DataRows.Count(); i++) data.Add($"({table.DataRows[i].ToString(", ", MysqlTypeFormat)})");
+            
+            return $"INSERT INTO `{tableName}` ({field}) VALUES {string.Join(", ", data)};";
         }
 
-        ///<summary>
-        ///Этот метод импортирует данные в уже готовую таблицу, с настройкой асоциаций между столбцами
-        ///</summary>
-        ///<returns>
-        ///Код результата запроса. 0 - без ошибок, 1+ с ошибкой.
-        ///</returns>
-        ///<param name="tableName">Название табллицы в которую производится импорт</param>
-        ///<param name="dataList">Данные которые нужно Импортировать в таблицу</param>
-        ///<param name="listAsotiation">Словарь асоциаций между таблицами</param>
-        public int ImportFromList(string tableName, List<Dictionary<string, dynamic>> dataList,
-            Dictionary<string, string> listAsotiation)
+        public void IncludeToTable(string tableName, Table table)
         {
-            //ToDo: Это нада будет как-то оптимизировать
+            if(_connection.State == ConnectionState.Closed) _connection.Open();
+            
+            new MySqlCommand(this.ExportToString(tableName, table), _connection).ExecuteNonQuery();
 
-            try
-            {
-                if (_connection.State == ConnectionState.Open) _connection.Close();
-
-                _connection.Open();
-
-                //Построение строки стобцов
-                Console.WriteLine(string.Join(",", listAsotiation.Keys));
-
-                List<string> dataImportList = new List<string>();
-
-                foreach (Dictionary<string, dynamic> rows in dataList)
-                {
-                    dataImportList.Add(string.Format(@"({0})", string.Join(",", rows.MutateToSQLImportContains(listAsotiation))));
-                }
-
-                //Команда для запроса в базу данных
-                string cmd = string.Format
-                (
-                    "INSERT INTO `{0}` ({1}) VALUES {2};",
-                    tableName, //название таблицы в которую експортируются данные
-                    string.Join(",", listAsotiation.Keys), //Столбцы которые будут заполняться
-                    string.Join(",", dataImportList) //Данные которые будут импортироваться
-                );
-
-                Console.WriteLine(cmd);
-                
-                //new MySqlCommand(cmd, _connection).ExecuteNonQuery(); //Выполнение команды
-
-                _connection.Close();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-
-                return 1;
-            }
-
-            return 0;
-
+            _connection.Close();
         }
-
-
+        private IEnumerable<object> GetRow(DbDataReader reader)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                yield return reader[i];
+            }
+        }
+        public static string MysqlTypeFormat(object o)
+        {
+            switch (o)
+            {
+                case Int32 result:
+                    return $"'{result}'";
+                    break;
+                case Decimal result:
+                    return $"'{result.ToString(new CultureInfo("en-US", false).NumberFormat)}'";
+                    break;
+                case string result:
+                    return $"'{result}'";
+                    break;
+                case bool result:
+                    return result ? "'1'" : "'0'";
+                    break;
+                case DateTime result:
+                    return $"'{result:yyyy-MM-dd HH:mm:ss.fff}'";
+                    break;
+                default:
+                    return $"'{o.ToString()}'"; 
+            }
+        }
     }
 }
