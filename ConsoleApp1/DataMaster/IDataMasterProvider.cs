@@ -9,6 +9,7 @@ namespace ConsoleApp1.DataMaster
         public Table Select(string tableName, string[] rowToSelect);
         public string ExportToString(string tableName, Table table);
         public void IncludeToTable(string tableName, Table table);
+        public void IncludeToTable(string tableName, Table table, Dictionary<string,string> TableAsotiation);
         public IEnumerable<StructElement> GetStruct();
         public IEnumerable<DataColumn> GetDataColumn(TableStruct struc);
     }

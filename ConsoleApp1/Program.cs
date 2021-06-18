@@ -10,39 +10,19 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            //выборку в базе данных с таблицы product
-            //создаем массив типа productList['model']
-
-            //выборку в базе данных с таблицы product_description by product_id
-            //присоединяем все к списку productList['description'] = product_descriptionList['name']
-            //
-
-            IDataMasterProvider master =
-                new MySqlDataMasterProvider("server=localhost;database=politerm;user=root;password=root");
-
+        //Initialize IdataMaster and connect to database 
+        IDataMasterProvider master =
+            new MySqlDataMasterProvider("server=localhost;database=politerm;user=root;password=root");
+        
+        //Get Data from table `product`
             Table table = master.Select("product");
-
-            //table.GetImportString();
-            //table.GetImportStringByLimit();
-            
-            Console.WriteLine(table.Structure[0].Name);
-
-            //Console.WriteLine(table.DataRows[0].ToString());
-            //Console.WriteLine("("+table.DataRows[0].ToString(", ", a => MySqlDataMasterProvider.MysqlTypeFormat(a)) + ") ");
-
+        
+            // Initialize IdataMaster another databse
             IDataMasterProvider ms =
                 new MySqlDataMasterProvider("server=localhost;database=data2;user=root;password=root");
             
+        //Insert data into table `product` in another database
             ms.IncludeToTable("product", table);
-            
-            
-            
-            //table.stuc[0]; // return "id"
-            //table.data[0]; // return data_row
-            //table.data[0]["product_id"]; // return "00012"
-
-            //table.GetImportString(); //return "INSERT * INTO TUDA"
-            //table.GetImportStringByAsotiation();
             
             
             

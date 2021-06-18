@@ -14,7 +14,7 @@ namespace ConsoleApp1.DataMaster.MySQL
         private string _connectionString;
         private MySqlConnection _connection;
         private DbDataReader _reader;
-        
+
         public MySqlDataMasterProvider(string connectionString)
         {
             _connection = new MySqlConnection(connectionString);
@@ -67,6 +67,7 @@ namespace ConsoleApp1.DataMaster.MySQL
             return $"INSERT INTO `{tableName}` ({field}) VALUES {string.Join(", ", data)};";
         }
 
+        //This method import data from `Table` and include into table *tableName* used scheme from `Table`
         public void IncludeToTable(string tableName, Table table)
         {
             if(_connection.State == ConnectionState.Closed) _connection.Open();
@@ -75,6 +76,14 @@ namespace ConsoleApp1.DataMaster.MySQL
 
             _connection.Close();
         }
+        //This method import data from `Table` and include into table *tableName* inserted field vith asotiation from tableAsotiation
+        public void IncludeToTable(string tableName, Table table, Dictionary<string, string> tableAsotiation)
+        {
+            //-p- 
+        }
+        
+        //Private local methods
+        
         private IEnumerable<object> GetRow(DbDataReader reader)
         {
             for (int i = 0; i < reader.FieldCount; i++)
@@ -82,7 +91,8 @@ namespace ConsoleApp1.DataMaster.MySQL
                 yield return reader[i];
             }
         }
-        public static string MysqlTypeFormat(object o)
+
+        private static string MysqlTypeFormat(object o)
         {
             switch (o)
             {
